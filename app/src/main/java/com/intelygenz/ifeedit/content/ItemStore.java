@@ -13,11 +13,13 @@ public class ItemStore {
 	//
 	public static final String DB_COL_PUB_DATE = "pub_date";
 	public static final String DB_COL_TITLE = "title";
+    public static final String DB_COL_LINK = "link";
 	public static final String DB_COL_DESCRIPTION = "description";
 
 	public static final String[] DB_COLS = new String[] {
 		DB_COL_PUB_DATE,
 		DB_COL_TITLE,
+        DB_COL_LINK,
 		DB_COL_DESCRIPTION,
 	};
 	
@@ -70,7 +72,8 @@ public class ItemStore {
             db.execSQL (
                 "CREATE TABLE " + DB_TABLE_NAME +
                 "(" + DB_COL_PUB_DATE 		+ " LONG    " +
-            	"(" + DB_COL_TITLE 			+ " TEXT    " +
+            	"," + DB_COL_TITLE 			+ " TEXT    " +
+                "," + DB_COL_LINK 			+ " TEXT    " +
             	"," + DB_COL_DESCRIPTION	+ " TEXT    " +
             	")"
             );

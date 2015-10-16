@@ -7,8 +7,11 @@ import android.support.v7.widget.Toolbar;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.view.View;
+import android.widget.Toast;
 
 import com.intelygenz.ifeedit.R;
+import com.intelygenz.ifeedit.content.ContentDownload;
+import com.intelygenz.ifeedit.content.ItemStore;
 
 
 /**
@@ -68,6 +71,16 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
         }
 
         // TODO: If exposing deep links into your app, handle intents here.
+
+
+        // TODO: temp.
+        ContentDownload cd = new ContentDownload();
+        cd.generateContent("http://www.xatakandroid.com/tag/feeds/rss2.xml", new ItemStore(this), new ContentDownload.Listener() {
+            @Override
+            public void onContentReady(boolean success) {
+                Toast.makeText(ItemListActivity.this, "DONE", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     /**
