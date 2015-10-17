@@ -55,8 +55,7 @@ public class ItemDetailActivity extends AppCompatActivity {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putString(ItemDetailFragment.ARG_ITEM_ID,
-                    getIntent().getStringExtra(ItemDetailFragment.ARG_ITEM_ID));
+            arguments.putInt(ItemDetailFragment.ARG_ITEM_ID, getIntent().getExtras().getInt(ItemDetailFragment.ARG_ITEM_ID));
             mFragment = new ItemDetailFragment();
             mFragment.setArguments(arguments);
             getSupportFragmentManager().beginTransaction()
