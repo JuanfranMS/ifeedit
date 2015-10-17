@@ -55,8 +55,9 @@ public class ItemListFragment extends ListFragment {
     public interface Callbacks {
         /**
          * Callback for when an item has been selected.
+         * @param id The value of the key column "_id" in the database.
          */
-        public void onItemSelected(String id);
+        public void onItemSelected(int id);
     }
 
     /**
@@ -65,7 +66,7 @@ public class ItemListFragment extends ListFragment {
      */
     private static Callbacks sDummyCallbacks = new Callbacks() {
         @Override
-        public void onItemSelected(String id) {
+        public void onItemSelected(int id) {
         }
     };
 
@@ -145,7 +146,9 @@ public class ItemListFragment extends ListFragment {
 
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
-        mCallbacks.onItemSelected(ItemContent.ITEMS.get(position).id);
+        mCursor.moveToPosition((int) id);
+        int dbId = mCursor.getInt(mCursor.getColumnIndex(ItemStore.DB_COL_ID));
+        mCallbacks.onItemSelected(dbId);
     }
 
     @Override

@@ -1,16 +1,21 @@
 package com.intelygenz.ifeedit.display;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebView;
 import android.widget.TextView;
 
 import com.intelygenz.ifeedit.R;
 import com.intelygenz.ifeedit.content.ItemContent;
+import com.intelygenz.ifeedit.content.ItemStore;
 
 /**
  * A fragment representing a single Item detail screen.
@@ -26,11 +31,6 @@ public class ItemDetailFragment extends Fragment {
     public static final String ARG_ITEM_ID = "item_id";
 
     /**
-     * The dummy content this fragment is presenting.
-     */
-    private ItemContent.DummyItem mItem;
-
-    /**
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
      */
@@ -40,19 +40,6 @@ public class ItemDetailFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        if (getArguments().containsKey(ARG_ITEM_ID)) {
-            // Load the dummy content specified by the fragment
-            // arguments. In a real-world scenario, use a Loader
-            // to load content from a content provider.
-            mItem = ItemContent.ITEM_MAP.get(getArguments().getString(ARG_ITEM_ID));
-
-            Activity activity = this.getActivity();
-            CollapsingToolbarLayout appBarLayout = (CollapsingToolbarLayout) activity.findViewById(R.id.toolbar_layout);
-            if (appBarLayout != null) {
-                appBarLayout.setTitle(mItem.content);
-            }
-        }
     }
 
     @Override
@@ -60,11 +47,41 @@ public class ItemDetailFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_item_detail, container, false);
 
-        // Show the dummy content as text in a TextView.
-        if (mItem != null) {
-            ((TextView) rootView.findViewById(R.id.item_detail)).setText(mItem.details);
-        }
+        if (getArguments().containsKey(ARG_ITEM_ID)) {
+            // Load the content of the requested item in database.
+            int id = getArguments().getInt(ARG_ITEM_ID);
+            // TODO: share the ItemStore from activity and close it on activity destroy.
+            Cursor cursor = (new ItemStore(getContext())).get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, "_id = " + id, null, null, null, null);
+            String content = "No content";
+            if (cursor.moveToFirst()) {
+                content = cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_DESCRIPTION));
+                // Remember this link to the cursor can be closed in the method.
+                mLink = cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_LINK));
+            }
 
+            // Fill in the web view.
+            WebView wb = (WebView) rootView.findViewById(R.id.detail_webview);
+            wb.getSettings().setUseWideViewPort(false);
+            wb.loadData(content, "text/html; charset=utf-8", null);
+
+            // Display the item title on top.
+            Activity activity = this.getActivity();
+            CollapsingToolbarLayout appBarLayout = (CollapsingToolbarLayout) activity.findViewById(R.id.toolbar_layout);
+            if (appBarLayout != null) {
+                appBarLayout.setTitle(cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_TITLE)));
+            }
+            cursor.close();
+        }
         return rootView;
     }
+
+    /**
+     * Launcher an external browser to let the user navigate into the item's source.
+     */
+    public void launchBrowser() {
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(mLink)));
+    }
+
+    /** The URL to launch in the external browser. */
+    private String mLink;
 }
