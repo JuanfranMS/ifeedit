@@ -1,10 +1,7 @@
 package com.intelygenz.ifeedit.content;
 
 import android.content.ContentValues;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.os.Parcel;
 import android.util.Log;
 import android.util.Xml;
 
@@ -15,6 +12,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * Connects to an RSS URL extracting the channel's items and stores them in the internal database.
@@ -169,6 +170,7 @@ public class ContentDownload {
             String link = null;
             String description = null;
             String imageUrl = null;
+            String pubDate = null;
             while (parser.next() != XmlPullParser.END_TAG) {
                 if (parser.getEventType() != XmlPullParser.START_TAG) continue;
                 String name = parser.getName();
@@ -184,6 +186,9 @@ public class ContentDownload {
                         break;
                     case "image":
                         imageUrl = readImage(parser);
+                        break;
+                    case "pubDate":
+                        pubDate = readPubDate(parser);
                         break;
                     default:
                         skip(parser);
@@ -219,6 +224,16 @@ public class ContentDownload {
                 }
             }
 
+            // Convert date as received into long time-stamp.
+            long timestamp = 0;
+            SimpleDateFormat formatter = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z", Locale.US);
+            try {
+                Date date = formatter.parse(pubDate);
+                timestamp = date.getTime();
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
             // Save the item content into database.
             ContentValues values = new ContentValues();
             values.put(ItemStore.DB_COL_ID, mEntryId++);
@@ -226,6 +241,7 @@ public class ContentDownload {
             values.put(ItemStore.DB_COL_LINK, link);
             values.put(ItemStore.DB_COL_DESCRIPTION, description);
             values.put(ItemStore.DB_COL_IMAGE_URL, imageUrl);
+            values.put(ItemStore.DB_COL_PUB_DATE, timestamp);
             if (imageBlob != null) values.put(ItemStore.DB_COL_IMAGE_CONTENT, imageBlob);
             mDatabase.get().insert(ItemStore.DB_TABLE_NAME, null, values);
         }
@@ -255,9 +271,19 @@ public class ContentDownload {
          */
         private String readDescription(XmlPullParser parser) throws IOException, XmlPullParserException {
             parser.require(XmlPullParser.START_TAG, null, "description");
-            String description = readText(parser); // TODO: extract image + description text.
+            String description = readText(parser);
             parser.require(XmlPullParser.END_TAG, null, "description");
             return description;
+        }
+
+        /**
+         * Processes one "pubDate" tag.
+         */
+        private String readPubDate(XmlPullParser parser) throws IOException, XmlPullParserException {
+            parser.require(XmlPullParser.START_TAG, null, "pubDate");
+            String link = readText(parser);
+            parser.require(XmlPullParser.END_TAG, null, "pubDate");
+            return link;
         }
 
         /**

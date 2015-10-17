@@ -8,16 +8,12 @@ import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.Html;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.intelygenz.ifeedit.R;
-import com.intelygenz.ifeedit.content.ContentDownload;
-import com.intelygenz.ifeedit.content.ItemContent;
 import com.intelygenz.ifeedit.content.ItemStore;
 
 /**
@@ -92,7 +88,7 @@ public class ItemListFragment extends ListFragment {
 
         // Query content.
         ItemStore database = new ItemStore(this.getContext());
-        mCursor = database.get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, null, null, null, null, null);
+        mCursor = database.get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, null, null, null, null, ItemStore.DB_COL_PUB_DATE + " DESC");
         int[] to = new int[] { R.id.entry_title, R.id.entry_summary, R.id.entry_image};
         CustomCursorAdapter cca = new CustomCursorAdapter(this.getContext(), R.layout.activity_item_list_entry, mCursor, ItemStore.DB_COLS, to, 0);
         setListAdapter(cca);
