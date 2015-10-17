@@ -1,7 +1,11 @@
 package com.intelygenz.ifeedit.content;
 
 import android.content.ContentValues;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Parcel;
+import android.util.Log;
 import android.util.Xml;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -164,6 +168,7 @@ public class ContentDownload {
             String title = null;
             String link = null;
             String description = null;
+            String imageUrl = null;
             while (parser.next() != XmlPullParser.END_TAG) {
                 if (parser.getEventType() != XmlPullParser.START_TAG) continue;
                 String name = parser.getName();
@@ -177,9 +182,40 @@ public class ContentDownload {
                     case "description":
                         description = readDescription(parser);
                         break;
+                    case "image":
+                        imageUrl = readImage(parser);
+                        break;
                     default:
                         skip(parser);
                         break;
+                }
+            }
+
+            // Case of no image tag available. Try to extract an image URL from the description then.
+            if (imageUrl == null && description != null) {
+                int urlStart = description.indexOf("src=\"") + 5;
+                int urlStop = description.substring(urlStart).indexOf(".jpg") + 4;
+                imageUrl = description.substring(urlStart, urlStart + urlStop);
+            }
+
+            // Download the image (its content, not just the link) to be also stored in database.
+            byte[] imageBlob = null;
+            //if (imageUrl == null) imageUrl = "http://i.blogs.es/1fedef/play-store/650_1200.jpg"; // TODO: temp.
+            if (imageUrl != null) {
+                try {
+                    final int MAX_IMAGE_CONTENT_SIZE = 1024 * 1024;
+                    final int IMAGE_CHUNCK_SIZE = 1024;
+                    InputStream imageStream = new URL(imageUrl).openConnection().getInputStream();
+                    byte[] imageContent = new byte[MAX_IMAGE_CONTENT_SIZE]; // TODO: move to a class member for performance reasons.
+                    int totalRead = 0;
+                    int readBytes;
+                    while ((readBytes = imageStream.read(imageContent, totalRead, IMAGE_CHUNCK_SIZE)) != -1 && totalRead < MAX_IMAGE_CONTENT_SIZE)
+                        totalRead += readBytes;
+                    imageBlob = new byte[totalRead];
+                    for (int i = 0; i < totalRead; ++i) imageBlob[i] = imageContent[i];
+                } catch (IOException e) {
+                    // This may be ok if the attempt to get an image URL from the description fails.
+                    Log.i("ContentDownload", "Failed to download image from " + imageUrl);
                 }
             }
 
@@ -189,6 +225,8 @@ public class ContentDownload {
             values.put(ItemStore.DB_COL_TITLE, title);
             values.put(ItemStore.DB_COL_LINK, link);
             values.put(ItemStore.DB_COL_DESCRIPTION, description);
+            values.put(ItemStore.DB_COL_IMAGE_URL, imageUrl);
+            if (imageBlob != null) values.put(ItemStore.DB_COL_IMAGE_CONTENT, imageBlob);
             mDatabase.get().insert(ItemStore.DB_TABLE_NAME, null, values);
         }
 
@@ -217,9 +255,9 @@ public class ContentDownload {
          */
         private String readDescription(XmlPullParser parser) throws IOException, XmlPullParserException {
             parser.require(XmlPullParser.START_TAG, null, "description");
-            String link = readText(parser); // TODO: extract image + description text.
+            String description = readText(parser); // TODO: extract image + description text.
             parser.require(XmlPullParser.END_TAG, null, "description");
-            return link;
+            return description;
         }
 
         /**
@@ -232,6 +270,23 @@ public class ContentDownload {
                 parser.nextTag();
             }
             return result;
+        }
+
+        /**
+         * Processes one "image" tag.
+         * The "url" tag inside will be processed to get the item's image (may not be present).
+         * @return The URL from where the image can be downloaded (might be null).
+         */
+        private String readImage(XmlPullParser parser) throws IOException, XmlPullParserException {
+            String imageUrl = null;
+            parser.require(XmlPullParser.START_TAG, null, "image");
+            while (parser.next() != XmlPullParser.END_TAG) {
+                if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+                String name = parser.getName();
+                if (name.equals("url")) imageUrl = readText(parser);
+                else skip(parser);
+            }
+            return imageUrl;
         }
     }
 }

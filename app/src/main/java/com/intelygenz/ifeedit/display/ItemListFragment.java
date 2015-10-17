@@ -3,6 +3,7 @@ package com.intelygenz.ifeedit.display;
 import android.app.Activity;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.Html;
@@ -188,9 +189,23 @@ public class ItemListFragment extends ListFragment {
             TextView title = (TextView) view.findViewById(R.id.entry_title);
             TextView summary = (TextView) view.findViewById(R.id.entry_summary);
             ImageView image = (ImageView) view.findViewById(R.id.entry_image);
+
+            // Place title.
             title.setText(Html.fromHtml(cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_TITLE))));
-            summary.setText(Html.fromHtml(cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_DESCRIPTION))));
-            // TODO: image
+
+            // Build and place description summary.
+            // The description content sometimes comes as plain text but also as HTML. Not easy to get a proper summary.
+            String description = cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_DESCRIPTION));
+            String summaryAttempt;
+            int paragraph = description.indexOf("<p>", description.indexOf("<p>") + 3);
+            if (paragraph != -1) summaryAttempt = description.substring(paragraph + 3);
+            else summaryAttempt = description;
+            summary.setText(Html.fromHtml(summaryAttempt));
+
+            // Place the image.
+            byte[] imageContent = cursor.getBlob(cursor.getColumnIndex(ItemStore.DB_COL_IMAGE_CONTENT));
+            if (imageContent != null) image.setImageBitmap(BitmapFactory.decodeByteArray(imageContent, 0, imageContent.length));
+            else image.setImageResource(R.mipmap.ic_launcher);
         }
     }
 }

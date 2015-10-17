@@ -16,6 +16,8 @@ public class ItemStore {
 	public static final String DB_COL_TITLE = "title";
     public static final String DB_COL_LINK = "link";
 	public static final String DB_COL_DESCRIPTION = "description";
+    public static final String DB_COL_IMAGE_URL = "image_url";
+    public static final String DB_COL_IMAGE_CONTENT = "image_content";
 
 	public static final String[] DB_COLS = new String[] {
         DB_COL_ID,
@@ -23,7 +25,9 @@ public class ItemStore {
 		DB_COL_TITLE,
         DB_COL_LINK,
 		DB_COL_DESCRIPTION,
-	};
+        DB_COL_IMAGE_URL,
+        DB_COL_IMAGE_CONTENT,
+    };
 	
     /**
      * Creates the object that provides access to the database.
@@ -78,6 +82,8 @@ public class ItemStore {
                 "," + DB_COL_TITLE 			+ " TEXT    " +
                 "," + DB_COL_LINK 			+ " TEXT    " +
             	"," + DB_COL_DESCRIPTION	+ " TEXT    " +
+                "," + DB_COL_IMAGE_URL  	+ " TEXT    " +
+                "," + DB_COL_IMAGE_CONTENT 	+ " BLOB    " +
             	")"
             );
         }
