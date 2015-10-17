@@ -80,16 +80,6 @@ public class ItemListFragment extends ListFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // TODO: temp.
-        ContentDownload cd = new ContentDownload();
-        cd.generateContent("http://www.xatakandroid.com/tag/feeds/rss2.xml", new ItemStore(this.getContext()), new ContentDownload.Listener() {
-            @Override
-            public void onContentReady(boolean success) {
-                Toast.makeText(getContext(), "DONE", Toast.LENGTH_SHORT).show();
-                refreshFromDb();
-            }
-        });
     }
 
     /**

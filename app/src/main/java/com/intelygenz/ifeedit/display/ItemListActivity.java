@@ -1,7 +1,10 @@
 package com.intelygenz.ifeedit.display;
 
+import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.support.design.widget.FloatingActionButton;
@@ -47,12 +50,12 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
 
+        // Settings button.
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                startActivity(new Intent(ItemListActivity.this, SettingsActivity.class));
             }
         });
 
@@ -65,12 +68,33 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
 
             // In two-pane mode, list items should be given the
             // 'activated' state when touched.
-            ((ItemListFragment) getSupportFragmentManager()
-                    .findFragmentById(R.id.item_list))
-                    .setActivateOnItemClick(true);
+            ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).setActivateOnItemClick(true);
         }
 
-        // TODO: If exposing deep links into your app, handle intents here.
+        // Fill in content when the app starts.
+        ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).refreshFromDb();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Check the current feed URL in preferences, it may have changed.
+        final SharedPreferences activityPrefs = getSharedPreferences("ItemListActivity", Activity.MODE_PRIVATE);
+        final String current = PreferenceManager.getDefaultSharedPreferences(this).getString("settings_feed_url", getString(R.string.pref_default_feed_url));
+        String last = activityPrefs.getString(SETTINGS_FEED_URL, "");
+
+        // Case of URL has not changed, do not re-download content.
+        if (current.equals(last)) return;
+
+        // Time to download new content from the new URL.
+        ContentDownload cd = new ContentDownload();
+        cd.generateContent(current, new ItemStore(this), new ContentDownload.Listener() {
+            @Override
+            public void onContentReady(boolean success) {
+                if (success) activityPrefs.edit().putString(SETTINGS_FEED_URL, current).apply();
+                ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).refreshFromDb();
+            }
+        });
     }
 
     /**
@@ -99,4 +123,7 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
             startActivity(detailIntent);
         }
     }
+
+    /** Local shared preference that remembers the last used URL. */
+    private static final String SETTINGS_FEED_URL = "last_feed_url_loaded";
 }
