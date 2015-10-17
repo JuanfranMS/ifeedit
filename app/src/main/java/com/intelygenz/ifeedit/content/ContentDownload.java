@@ -42,6 +42,7 @@ public class ContentDownload {
 
         // Clean up database removing previous content. TODO: avoid removing previous content if this download process fails (preserve previous content at lest).
         mDatabase.get().execSQL("DELETE FROM " + ItemStore.DB_TABLE_NAME);
+        mEntryId = 0;
 
         // Initiate the process in the background.
         (new RssXmlProcessor()).execute(rssUrl);
@@ -52,6 +53,9 @@ public class ContentDownload {
 
     /** The database provided to fill in with the downloaded content. */
     private ItemStore mDatabase;
+
+    /** Counter to provide the primary key of the database table in its "_id" field, needed by cursors. */
+    private int mEntryId;
 
     /**
      * Performs the process of downloading the RSS xml file, parse and store in database.
@@ -181,6 +185,7 @@ public class ContentDownload {
 
             // Save the item content into database.
             ContentValues values = new ContentValues();
+            values.put(ItemStore.DB_COL_ID, mEntryId++);
             values.put(ItemStore.DB_COL_TITLE, title);
             values.put(ItemStore.DB_COL_LINK, link);
             values.put(ItemStore.DB_COL_DESCRIPTION, description);

@@ -1,13 +1,23 @@
 package com.intelygenz.ifeedit.display;
 
 import android.app.Activity;
+import android.content.Context;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
+import android.text.Html;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
+import android.widget.Toast;
 
+import com.intelygenz.ifeedit.R;
+import com.intelygenz.ifeedit.content.ContentDownload;
 import com.intelygenz.ifeedit.content.ItemContent;
+import com.intelygenz.ifeedit.content.ItemStore;
 
 /**
  * A list fragment representing a list of Items. This fragment
@@ -70,12 +80,30 @@ public class ItemListFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // TODO: replace with cursor adapter from database.
-        setListAdapter(new ArrayAdapter<ItemContent.DummyItem>(
-                getActivity(),
-                android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1,
-                ItemContent.ITEMS));
+        // TODO: temp.
+        ContentDownload cd = new ContentDownload();
+        cd.generateContent("http://www.xatakandroid.com/tag/feeds/rss2.xml", new ItemStore(this.getContext()), new ContentDownload.Listener() {
+            @Override
+            public void onContentReady(boolean success) {
+                Toast.makeText(getContext(), "DONE", Toast.LENGTH_SHORT).show();
+                refreshFromDb();
+            }
+        });
+    }
+
+    /**
+     * Updates the listed items by reading the current content in the database.
+     */
+    public void refreshFromDb() {
+        // Close previous load.
+        if (mCursor != null && !mCursor.isClosed()) mCursor.close();
+
+        // Query content.
+        ItemStore database = new ItemStore(this.getContext());
+        mCursor = database.get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, null, null, null, null, null);
+        int[] to = new int[] { R.id.entry_title, R.id.entry_summary, R.id.entry_image};
+        CustomCursorAdapter cca = new CustomCursorAdapter(this.getContext(), R.layout.activity_item_list_entry, mCursor, ItemStore.DB_COLS, to, 0);
+        setListAdapter(cca);
     }
 
     @Override
@@ -104,6 +132,8 @@ public class ItemListFragment extends ListFragment {
     @Override
     public void onDetach() {
         super.onDetach();
+
+        if (mCursor != null && !mCursor.isClosed()) mCursor.close();
 
         // Reset the active callbacks interface to the dummy implementation.
         mCallbacks = sDummyCallbacks;
@@ -147,5 +177,27 @@ public class ItemListFragment extends ListFragment {
         }
 
         mActivatedPosition = position;
+    }
+
+    /** The cursor to retrieve content from database. */
+    private Cursor mCursor;
+
+    /**
+     * Presents the information in each cursor entry on the entry layout (a row in the item list).
+     */
+    private class CustomCursorAdapter extends SimpleCursorAdapter {
+        public CustomCursorAdapter(Context context, int layout, Cursor c, String[] from, int[] to, int flags) {
+            super(context, layout, c, from, to, flags);
+        }
+
+        @Override
+        public void bindView(View view, Context context, Cursor cursor) {
+            TextView title = (TextView) view.findViewById(R.id.entry_title);
+            TextView summary = (TextView) view.findViewById(R.id.entry_summary);
+            ImageView image = (ImageView) view.findViewById(R.id.entry_image);
+            title.setText(Html.fromHtml(cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_TITLE))));
+            summary.setText(Html.fromHtml(cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_DESCRIPTION))));
+            // TODO: image
+        }
     }
 }
