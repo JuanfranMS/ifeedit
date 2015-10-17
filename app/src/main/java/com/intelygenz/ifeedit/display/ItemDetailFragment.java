@@ -62,6 +62,7 @@ public class ItemDetailFragment extends Fragment {
             // Fill in the web view.
             WebView wb = (WebView) rootView.findViewById(R.id.detail_webview);
             wb.getSettings().setUseWideViewPort(false);
+            wb.getSettings().setLoadWithOverviewMode(true); // Note: this line tries to fit images on screen, but not working.
             wb.loadData(content, "text/html; charset=utf-8", null);
 
             // Display the item title on top.
