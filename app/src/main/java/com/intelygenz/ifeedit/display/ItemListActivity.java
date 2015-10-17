@@ -5,17 +5,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.view.View;
-import android.widget.Toast;
 
 import com.intelygenz.ifeedit.R;
 import com.intelygenz.ifeedit.content.ContentDownload;
 import com.intelygenz.ifeedit.content.ItemStore;
-
 
 /**
  * An activity representing a list of Items. This activity
@@ -34,12 +31,6 @@ import com.intelygenz.ifeedit.content.ItemStore;
  * to listen for item selections.
  */
 public class ItemListActivity extends AppCompatActivity implements ItemListFragment.Callbacks {
-
-    /**
-     * Whether or not the activity is in two-pane mode, i.e. running on a tablet
-     * device.
-     */
-    private boolean mTwoPane;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,14 +51,12 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
         });
 
         if (findViewById(R.id.item_detail_container) != null) {
-            // The detail container view will be present only in the
-            // large-screen layouts (res/values-large and
-            // res/values-sw600dp). If this view is present, then the
+            // The detail container view will be present only in the large-screen layouts
+            // (res/values-large and res/values-sw600dp). If this view is present, then the
             // activity should be in two-pane mode.
             mTwoPane = true;
 
-            // In two-pane mode, list items should be given the
-            // 'activated' state when touched.
+            // In two-pane mode, list items should be given the 'activated' state when touched.
             ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).setActivateOnItemClick(true);
         }
 
@@ -78,6 +67,7 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
     @Override
     protected void onResume() {
         super.onResume();
+
         // Check the current feed URL in preferences, it may have changed.
         final SharedPreferences activityPrefs = getSharedPreferences("ItemListActivity", Activity.MODE_PRIVATE);
         final String current = PreferenceManager.getDefaultSharedPreferences(this).getString("settings_feed_url", getString(R.string.pref_default_feed_url));
@@ -88,9 +78,12 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
 
         // Time to download new content from the new URL.
         ContentDownload cd = new ContentDownload();
-        cd.generateContent(current, new ItemStore(this), new ContentDownload.Listener() {
+        final ItemStore database = new ItemStore(this);
+        cd.generateContent(current, database, new ContentDownload.Listener() {
             @Override
             public void onContentReady(boolean success) {
+                database.close();
+                // Show the new content in the item list.
                 if (success) activityPrefs.edit().putString(SETTINGS_FEED_URL, current).apply();
                 ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).refreshFromDb();
             }
@@ -105,16 +98,12 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
     public void onItemSelected(int id) {
         if (mTwoPane) {
             // In two-pane mode, show the detail view in this activity by
-            // adding or replacing the detail fragment using a
-            // fragment transaction.
+            // adding or replacing the detail fragment using a fragment transaction.
             Bundle arguments = new Bundle();
             arguments.putInt(ItemDetailFragment.ARG_ITEM_ID, id);
             ItemDetailFragment fragment = new ItemDetailFragment();
             fragment.setArguments(arguments);
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.item_detail_container, fragment)
-                    .commit();
-
+            getSupportFragmentManager().beginTransaction() .replace(R.id.item_detail_container, fragment).commit();
         } else {
             // In single-pane mode, simply start the detail activity
             // for the selected item ID.
@@ -123,6 +112,12 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
             startActivity(detailIntent);
         }
     }
+
+    /**
+     * Whether or not the activity is in two-pane mode, i.e. running on a tablet
+     * device.
+     */
+    private boolean mTwoPane;
 
     /** Local shared preference that remembers the last used URL. */
     private static final String SETTINGS_FEED_URL = "last_feed_url_loaded";

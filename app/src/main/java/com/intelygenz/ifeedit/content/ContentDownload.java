@@ -95,6 +95,7 @@ public class ContentDownload {
 
         @Override
         protected void onPostExecute(Boolean success) {
+            // Notify listener so the new content in database is displayed to user.
             if (mListener != null) mListener.onContentReady(success);
         }
 
@@ -205,7 +206,6 @@ public class ContentDownload {
 
             // Download the image (its content, not just the link) to be also stored in database.
             byte[] imageBlob = null;
-            //if (imageUrl == null) imageUrl = "http://i.blogs.es/1fedef/play-store/650_1200.jpg"; // TODO: temp.
             if (imageUrl != null) {
                 try {
                     final int MAX_IMAGE_CONTENT_SIZE = 1024 * 1024;
@@ -214,10 +214,11 @@ public class ContentDownload {
                     byte[] imageContent = new byte[MAX_IMAGE_CONTENT_SIZE]; // TODO: move to a class member for performance reasons.
                     int totalRead = 0;
                     int readBytes;
-                    while ((readBytes = imageStream.read(imageContent, totalRead, IMAGE_CHUNCK_SIZE)) != -1 && totalRead < MAX_IMAGE_CONTENT_SIZE)
+                    while ((readBytes = imageStream.read(imageContent, totalRead, IMAGE_CHUNCK_SIZE)) != -1 && totalRead < MAX_IMAGE_CONTENT_SIZE) {
                         totalRead += readBytes;
+                    }
                     imageBlob = new byte[totalRead];
-                    for (int i = 0; i < totalRead; ++i) imageBlob[i] = imageContent[i];
+                    System.arraycopy(imageContent, 0, imageBlob, 0, totalRead);
                 } catch (IOException e) {
                     // This may be ok if the attempt to get an image URL from the description fails.
                     Log.i("ContentDownload", "Failed to download image from " + imageUrl);

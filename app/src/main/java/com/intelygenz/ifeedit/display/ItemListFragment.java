@@ -28,23 +28,6 @@ import com.intelygenz.ifeedit.content.ItemStore;
 public class ItemListFragment extends ListFragment {
 
     /**
-     * The serialization (saved instance state) Bundle key representing the
-     * activated item position. Only used on tablets.
-     */
-    private static final String STATE_ACTIVATED_POSITION = "activated_position";
-
-    /**
-     * The fragment's current callback object, which is notified of list item
-     * clicks.
-     */
-    private Callbacks mCallbacks = sDummyCallbacks;
-
-    /**
-     * The current activated item position. Only used on tablets.
-     */
-    private int mActivatedPosition = ListView.INVALID_POSITION;
-
-    /**
      * A callback interface that all activities containing this fragment must
      * implement. This mechanism allows activities to be notified of item
      * selections.
@@ -54,7 +37,7 @@ public class ItemListFragment extends ListFragment {
          * Callback for when an item has been selected.
          * @param id The value of the key column "_id" in the database.
          */
-        public void onItemSelected(int id);
+        void onItemSelected(int id);
     }
 
     /**
@@ -86,7 +69,8 @@ public class ItemListFragment extends ListFragment {
         // Close previous load.
         if (mCursor != null && !mCursor.isClosed()) mCursor.close();
 
-        // Query content.
+        // Query content from database and place in the list view using a cursor adapter.
+        // Getting all entries stored in database from the most recent (publication date).
         ItemStore database = new ItemStore(this.getContext());
         mCursor = database.get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, null, null, null, null, ItemStore.DB_COL_PUB_DATE + " DESC");
         int[] to = new int[] { R.id.entry_title, R.id.entry_summary, R.id.entry_image};
@@ -99,8 +83,7 @@ public class ItemListFragment extends ListFragment {
         super.onViewCreated(view, savedInstanceState);
 
         // Restore the previously serialized activated item position.
-        if (savedInstanceState != null
-                && savedInstanceState.containsKey(STATE_ACTIVATED_POSITION)) {
+        if (savedInstanceState != null && savedInstanceState.containsKey(STATE_ACTIVATED_POSITION)) {
             setActivatedPosition(savedInstanceState.getInt(STATE_ACTIVATED_POSITION));
         }
     }
@@ -171,6 +154,23 @@ public class ItemListFragment extends ListFragment {
 
     /** The cursor to retrieve content from database. */
     private Cursor mCursor;
+
+    /**
+     * The serialization (saved instance state) Bundle key representing the
+     * activated item position. Only used on tablets.
+     */
+    private static final String STATE_ACTIVATED_POSITION = "activated_position";
+
+    /**
+     * The fragment's current callback object, which is notified of list item
+     * clicks.
+     */
+    private Callbacks mCallbacks = sDummyCallbacks;
+
+    /**
+     * The current activated item position. Only used on tablets.
+     */
+    private int mActivatedPosition = ListView.INVALID_POSITION;
 
     /**
      * Presents the information in each cursor entry on the entry layout (a row in the item list).

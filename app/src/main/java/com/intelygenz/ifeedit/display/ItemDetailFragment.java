@@ -4,17 +4,15 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
+import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
-import android.widget.TextView;
 
 import com.intelygenz.ifeedit.R;
-import com.intelygenz.ifeedit.content.ItemContent;
 import com.intelygenz.ifeedit.content.ItemStore;
 
 /**
@@ -25,8 +23,7 @@ import com.intelygenz.ifeedit.content.ItemStore;
  */
 public class ItemDetailFragment extends Fragment {
     /**
-     * The fragment argument representing the item ID that this fragment
-     * represents.
+     * The fragment argument representing the item ID that this fragment represents.
      */
     public static final String ARG_ITEM_ID = "item_id";
 
