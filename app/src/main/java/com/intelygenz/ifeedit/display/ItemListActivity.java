@@ -1,13 +1,19 @@
 package com.intelygenz.ifeedit.display;
 
 import android.app.Activity;
+import android.app.SearchManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 
 import com.intelygenz.ifeedit.R;
@@ -30,7 +36,7 @@ import com.intelygenz.ifeedit.content.ItemStore;
  * {@link ItemListFragment.Callbacks} interface
  * to listen for item selections.
  */
-public class ItemListActivity extends AppCompatActivity implements ItemListFragment.Callbacks {
+public class ItemListActivity extends AppCompatActivity implements ItemListFragment.Callbacks, Toolbar.OnMenuItemClickListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +46,7 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
+        toolbar.setOnMenuItemClickListener(this);
 
         // Settings button.
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -50,6 +57,8 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
             }
         });
 
+        // The list of items.
+        mItemListFragment = (ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list);
         if (findViewById(R.id.item_detail_container) != null) {
             // The detail container view will be present only in the large-screen layouts
             // (res/values-large and res/values-sw600dp). If this view is present, then the
@@ -57,11 +66,11 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
             mTwoPane = true;
 
             // In two-pane mode, list items should be given the 'activated' state when touched.
-            ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).setActivateOnItemClick(true);
+            mItemListFragment.setActivateOnItemClick(true);
         }
 
         // Fill in content when the app starts.
-        ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).refreshFromDb();
+        mItemListFragment.refreshFromDb(null);
     }
 
     @Override
@@ -76,16 +85,33 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
         // Case of URL has not changed, do not re-download content.
         if (current.equals(last)) return;
 
+        reloadContentFromUrl();
+    }
+
+    /**
+     * Initiates the process of downloading the content provided by the currently configured URL
+     * updating the item list when completed.
+     */
+    private void reloadContentFromUrl() {
+        final SharedPreferences activityPrefs = getSharedPreferences("ItemListActivity", Activity.MODE_PRIVATE);
+        final String current = PreferenceManager.getDefaultSharedPreferences(this).getString("settings_feed_url", getString(R.string.pref_default_feed_url));
+
         // Time to download new content from the new URL.
+        mItemListFragment.showLoadingIndicator();
         ContentDownload cd = new ContentDownload();
         final ItemStore database = new ItemStore(this);
-        cd.generateContent(current, database, new ContentDownload.Listener() {
+        cd.generateContent(this, current, database, new ContentDownload.Listener() {
             @Override
             public void onContentReady(boolean success) {
-                database.close();
-                // Show the new content in the item list.
-                if (success) activityPrefs.edit().putString(SETTINGS_FEED_URL, current).apply();
-                ((ItemListFragment) getSupportFragmentManager().findFragmentById(R.id.item_list)).refreshFromDb();
+                try {
+                    database.close();
+                    // Show the new content in the item list.
+                    if (success) activityPrefs.edit().putString(SETTINGS_FEED_URL, current).apply();
+                    mItemListFragment.refreshFromDb(null);
+                } catch (Exception e) {
+                    // This fails if the app is closed while loading content. Ok, the database already has the data.
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -113,11 +139,55 @@ public class ItemListActivity extends AppCompatActivity implements ItemListFragm
         }
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.item_list, menu);
+
+        // Search option filters the item list.
+        SearchView searchView = (SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.action_search));
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                // Reloading the list considering the filter typed by the user in the search tool.
+                mItemListFragment.refreshFromDb(query);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                // Restore the entire content.
+                if (newText.isEmpty()) mItemListFragment.refreshFromDb(null);
+                return false;
+            }
+        });
+
+        return true;
+    }
+
+    @Override
+    public boolean onMenuItemClick(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_reload:
+                // Reload the list from source URL.
+                reloadContentFromUrl();
+                break;
+            case R.id.action_settings:
+                // Open settings activity.
+                startActivity(new Intent(ItemListActivity.this, SettingsActivity.class));
+                break;
+        }
+        return false;
+    }
+
     /**
      * Whether or not the activity is in two-pane mode, i.e. running on a tablet
      * device.
      */
     private boolean mTwoPane;
+
+    /** The fragment containing the list of items. */
+    private ItemListFragment mItemListFragment;
 
     /** Local shared preference that remembers the last used URL. */
     private static final String SETTINGS_FEED_URL = "last_feed_url_loaded";

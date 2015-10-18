@@ -63,16 +63,26 @@ public class ItemListFragment extends ListFragment {
     }
 
     /**
-     * Updates the listed items by reading the current content in the database.
+     * Make the list of be cleared and a spinner appears until a refreshFromDb is called.
      */
-    public void refreshFromDb() {
+    public void showLoadingIndicator() {
+        // Supposedly this should work. TODO: not working.
+        this.setListAdapter(null);
+    }
+
+    /**
+     * Updates the listed items by reading the current content in the database.
+     * @param searchCondition Filters the content to be displayed in the list. A string to exist in the title.
+     */
+    public void refreshFromDb(String searchCondition) {
         // Close previous load.
         if (mCursor != null && !mCursor.isClosed()) mCursor.close();
 
         // Query content from database and place in the list view using a cursor adapter.
-        // Getting all entries stored in database from the most recent (publication date).
+        // Getting all (some, if search condition provided) entries stored in database from the most recent (publication date).
+        String whereFilter = searchCondition == null || searchCondition.isEmpty() ? null : ItemStore.DB_COL_TITLE + " like '%" + searchCondition + "%'";
         ItemStore database = new ItemStore(this.getContext());
-        mCursor = database.get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, null, null, null, null, ItemStore.DB_COL_PUB_DATE + " DESC");
+        mCursor = database.get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, whereFilter, null, null, null, ItemStore.DB_COL_PUB_DATE + " DESC");
         int[] to = new int[] { R.id.entry_title, R.id.entry_summary, R.id.entry_image};
         CustomCursorAdapter cca = new CustomCursorAdapter(this.getContext(), R.layout.activity_item_list_entry, mCursor, ItemStore.DB_COLS, to, 0);
         setListAdapter(cca);
@@ -116,7 +126,7 @@ public class ItemListFragment extends ListFragment {
 
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
-        mCursor.moveToPosition((int) id);
+        mCursor.moveToPosition(position);
         int dbId = mCursor.getInt(mCursor.getColumnIndex(ItemStore.DB_COL_ID));
         mCallbacks.onItemSelected(dbId);
     }

@@ -1,9 +1,11 @@
 package com.intelygenz.ifeedit.content;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.util.Xml;
+import android.widget.Toast;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -41,7 +43,8 @@ public class ContentDownload {
      * @param database The item database where downloaded content will persist.
      * @param listener To receive the notification when process completes.
      */
-    public void generateContent(String rssUrl, ItemStore database, Listener listener) {
+    public void generateContent(Context context, String rssUrl, ItemStore database, Listener listener) {
+        mContext = context;
         mListener = listener;
         mDatabase = database;
 
@@ -52,6 +55,9 @@ public class ContentDownload {
         // Initiate the process in the background.
         (new RssXmlProcessor()).execute(rssUrl);
     }
+
+    /** Used to display download progress. */
+    private Context mContext;
 
     /** The content download initiator waiting for completion. */
     private Listener mListener;
@@ -67,7 +73,13 @@ public class ContentDownload {
      * See http://www.w3schools.com/xml/xml_rss.asp for format specifications.
      * See http://developer.android.com/training/basics/network-ops/xml.html on how to parse an XML file.
      */
-    private class RssXmlProcessor extends AsyncTask<String, Void, Boolean> {
+    private class RssXmlProcessor extends AsyncTask<String, Integer, Boolean> {
+
+        @Override
+        protected void onPreExecute() {
+            Toast.makeText(mContext, "Downloading content...", Toast.LENGTH_SHORT).show();
+        }
+
         @Override
         protected Boolean doInBackground(String... url) {
             InputStream stream = null;
@@ -91,6 +103,11 @@ public class ContentDownload {
                 if (stream != null) try { stream.close(); } catch (IOException e) { /* Give up. */ }
             }
             return true;
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... itemCount) {
+            Toast.makeText(mContext, "Items loaded so far: " + itemCount[0], Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -134,12 +151,17 @@ public class ContentDownload {
          * The items inside will be processed and stored in database.
          */
         private void readChannel(XmlPullParser parser) throws IOException, XmlPullParserException {
+            int itemCount = 0;
             parser.require(XmlPullParser.START_TAG, null, "channel");
             while (parser.next() != XmlPullParser.END_TAG) {
                 if (parser.getEventType() != XmlPullParser.START_TAG) continue;
                 String name = parser.getName();
                 // Looking for the first/next "item" tag.
-                if (name.equals("item")) readItem(parser);
+                if (name.equals("item")) {
+                    readItem(parser);
+                    itemCount++;
+                    if (itemCount % 5 == 0) this.publishProgress(itemCount);
+                }
                 else skip(parser);
             }
         }

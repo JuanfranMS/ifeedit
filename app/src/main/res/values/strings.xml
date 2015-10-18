@@ -1,7 +1,12 @@
 <resources>
     <string name="app_name">iFeedIt</string>
 
+    <!-- Action bar menu options. -->
     <string name="action_settings">Settings</string>
+    <string name="action_reload">Reload</string>
+    <string name="action_search">Search</string>
+
+    <!-- Titles. -->
     <string name="title_item_list">iFeedIt</string>
     <string name="title_activity_settings">Settings</string>
 
