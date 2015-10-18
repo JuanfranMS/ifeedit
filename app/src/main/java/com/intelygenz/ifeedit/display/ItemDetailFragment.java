@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -69,6 +70,16 @@ public class ItemDetailFragment extends Fragment {
                 appBarLayout.setTitle(cursor.getString(cursor.getColumnIndex(ItemStore.DB_COL_TITLE)));
             }
             cursor.close();
+
+            // Launch browser floating button.
+            FloatingActionButton fab = (FloatingActionButton) rootView.findViewById(R.id.fab_fragment);
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    launchBrowser();
+                }
+            });
+
         }
         return rootView;
     }
