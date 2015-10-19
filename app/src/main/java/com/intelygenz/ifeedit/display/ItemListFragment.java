@@ -66,8 +66,7 @@ public class ItemListFragment extends ListFragment {
      * Make the list of be cleared and a spinner appears until a refreshFromDb is called.
      */
     public void showLoadingIndicator() {
-        // Supposedly this should work. TODO: not working.
-        this.setListAdapter(null);
+        setListShown(false);
     }
 
     /**
@@ -80,6 +79,7 @@ public class ItemListFragment extends ListFragment {
 
         // Query content from database and place in the list view using a cursor adapter.
         // Getting all (some, if search condition provided) entries stored in database from the most recent (publication date).
+        setListShown(true);
         String whereFilter = searchCondition == null || searchCondition.isEmpty() ? null : ItemStore.DB_COL_TITLE + " like '%" + searchCondition + "%'";
         ItemStore database = new ItemStore(this.getContext());
         mCursor = database.get().query(ItemStore.DB_TABLE_NAME, ItemStore.DB_COLS, whereFilter, null, null, null, ItemStore.DB_COL_PUB_DATE + " DESC");

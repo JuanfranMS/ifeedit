@@ -222,28 +222,32 @@ public class ContentDownload {
             // Case of no image tag available. Try to extract an image URL from the description then.
             if (imageUrl == null && description != null) {
                 int urlStart = description.indexOf("src=\"") + 5;
-                int urlStop = description.substring(urlStart).indexOf(".jpg") + 4;
+                int urlStop = description.toLowerCase().substring(urlStart).indexOf(".jpg") + 4;
+                if (urlStop == 3) urlStop = description.toLowerCase().substring(urlStart).indexOf(".png") + 4;
+                if (urlStop == 3) urlStop = description.toLowerCase().substring(urlStart).indexOf(".jpeg") + 5;
                 imageUrl = description.substring(urlStart, urlStart + urlStop);
             }
 
             // Download the image (its content, not just the link) to be also stored in database.
+            // TODO: defer image download to avoid content download delay.
+            // TODO: scale image to an acceptable thumbnail.
             byte[] imageBlob = null;
             if (imageUrl != null) {
                 try {
-                    final int MAX_IMAGE_CONTENT_SIZE = 1024 * 1024;
-                    final int IMAGE_CHUNCK_SIZE = 1024;
                     InputStream imageStream = new URL(imageUrl).openConnection().getInputStream();
-                    byte[] imageContent = new byte[MAX_IMAGE_CONTENT_SIZE]; // TODO: move to a class member for performance reasons.
                     int totalRead = 0;
                     int readBytes;
-                    while ((readBytes = imageStream.read(imageContent, totalRead, IMAGE_CHUNCK_SIZE)) != -1 && totalRead < MAX_IMAGE_CONTENT_SIZE) {
+                    while ((readBytes = imageStream.read(mImageContent, totalRead, IMAGE_CHUNCK_SIZE)) != -1 && totalRead < MAX_IMAGE_CONTENT_SIZE) {
                         totalRead += readBytes;
                     }
                     imageBlob = new byte[totalRead];
-                    System.arraycopy(imageContent, 0, imageBlob, 0, totalRead);
+                    System.arraycopy(mImageContent, 0, imageBlob, 0, totalRead);
                 } catch (IOException e) {
                     // This may be ok if the attempt to get an image URL from the description fails.
                     Log.i("ContentDownload", "Failed to download image from " + imageUrl);
+                } catch (Exception e) {
+                    Log.i("ContentDownload", "Failed to download image from " + imageUrl);
+                    e.printStackTrace();
                 }
             }
 
@@ -337,5 +341,11 @@ public class ContentDownload {
             }
             return imageUrl;
         }
+
+        private static final int MAX_IMAGE_CONTENT_SIZE = 1024 * 1024;
+        private static final int IMAGE_CHUNCK_SIZE = 1024;
+
+        /** Reused temporary buffer where images are downloaded. */
+        private byte[] mImageContent = new byte[MAX_IMAGE_CONTENT_SIZE];
     }
 }
